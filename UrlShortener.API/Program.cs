@@ -1,5 +1,6 @@
 
 using UrlShortener.API.Configs;
+using UrlShortener.API.Extensions;
 
 namespace UrlShortener.API;
 
@@ -20,6 +21,8 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        builder.Services.AddCors();
+
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
@@ -27,12 +30,19 @@ public class Program
         {
             app.UseSwagger();
             app.UseSwaggerUI();
+            app.ApplyMigrations();
         }
 
         app.UseHttpsRedirection();
         app.UseAuthorization();
         app.MapControllers();
 
+        app.UseCors(x =>
+            x
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .WithOrigins("http://localhost:3000"));
+        
         app.Run();
     }
 }

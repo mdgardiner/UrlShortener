@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./UrlShortener.API
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__Database=Host=database;Port=5432;Database=shortenerdb;Username=dbusername;Password=dbpassword
+      - ApplicationSettings__ShortCodeUrlPrefix=http://localhost:3000
+      - ApplicationSettings__ShortCodeLength=7
+
+  database:
+    image: postgres:latest
+    ports:
+      - "6000:5432"
+    environment:
+      POSTGRES_DB: shortenerdb
+      POSTGRES_USER: dbusername
+      POSTGRES_PASSWORD: dbpassword
+
