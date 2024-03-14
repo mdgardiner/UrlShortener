@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using UrlShortener.API.Models.Dtos;
 using UrlShortener.API.Services.Interfaces;
@@ -23,17 +24,33 @@ public class ApiController : ControllerBase
     [Route("shorten")]
     public IActionResult GetShortenedUrl(CreateShortenedUrlDto shortenedUrlDto)
     {
-        _logger.LogInformation("Request received to shorten '{url}'", shortenedUrlDto.LongUrl);
+        _logger.LogInformation("Request received to shorten url '{url}'", shortenedUrlDto.LongUrl);
 
         try
         {
             var result = _shortenedUrlService.GetShortenedUrl(shortenedUrlDto.LongUrl);
             return Ok(result);
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
             return BadRequest();
         }
-        
+    }
+
+    [HttpPost]
+    [Route("expand")]
+    public IActionResult GetExpandedUrl(ExpandShortenedUrlDto expandShortenedUrlDto)
+    {
+        _logger.LogInformation("Request received to expand shortcode '{shortcode}'", expandShortenedUrlDto.ShortCode);
+
+        try
+        {
+            var result = _shortenedUrlService.RetrieveLongUrl(expandShortenedUrlDto.ShortCode);
+            return Ok(result);
+        }
+        catch (ApplicationException)
+        {
+            return BadRequest();
+        }
     }
 }

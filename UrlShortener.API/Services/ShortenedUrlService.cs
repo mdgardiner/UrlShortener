@@ -8,7 +8,7 @@ namespace UrlShortener.API.Services;
 
 public class ShortenedUrlService : IShortenedUrlService
 {
-    private readonly IUrlValidator _urlValidator;
+    private readonly IInputValidator _inputValidator;
     private readonly IRepository<ShortenedUrl> _shortenedUrlRepository;
     private readonly IShortCodeUrlPrefixer _shortCodeUrlPrefixer;
     private readonly IShortCodeGenerator _shortCodeGenerator;
@@ -16,14 +16,14 @@ public class ShortenedUrlService : IShortenedUrlService
     private readonly ILogger<ShortenedUrlService> _logger;
 
     public ShortenedUrlService(
-        IUrlValidator urlValidator,
+        IInputValidator inputValidator,
         IRepository<ShortenedUrl> shortenedUrlRepository,
         IShortCodeUrlPrefixer shortCodeUrlPrefixer,
         IShortCodeGenerator shortCodeGenerator,
         IOptions<ApplicationSettings> applicationSettings,
         ILogger<ShortenedUrlService> logger)
     {
-        _urlValidator = urlValidator;
+        _inputValidator = inputValidator;
         _shortenedUrlRepository = shortenedUrlRepository;
         _shortCodeUrlPrefixer = shortCodeUrlPrefixer;
         _shortCodeGenerator = shortCodeGenerator;
@@ -35,23 +35,34 @@ public class ShortenedUrlService : IShortenedUrlService
     {
         _logger.LogInformation("Getting shortened url for '{longUrl}'", longUrl);
         
-        if (!_urlValidator.IsValid(longUrl))
+        if (!_inputValidator.UrlIsValid(longUrl))
             throw new ArgumentException($"{longUrl} is not a valid url");
 
         var existingShortUrl = _shortenedUrlRepository
             .SearchForSingleOrDefault(x => x.LongUrl == longUrl);
 
         if (existingShortUrl != null)
-            return GetAndLogReturnUrl(longUrl, existingShortUrl.ShortCode);
+            return GetAndLogReturnShortenedUrl(longUrl, existingShortUrl.ShortCode);
 
         var newShortCode = CreateNewShortCode(longUrl);
 
-        return GetAndLogReturnUrl(longUrl, newShortCode);
+        return GetAndLogReturnShortenedUrl(longUrl, newShortCode);
     }
 
-    public Uri RetrieveLongUrl(string? shortUrl)
+    public Uri? RetrieveLongUrl(string? shortCode)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation("Getting long url for '{shortUrl}'", shortCode);
+
+        if (!_inputValidator.ShortCodeIsValid(shortCode, _applicationSettings.ShortCodeLength))
+            throw new ArgumentException(
+                $"{shortCode} must not be empty and be {_applicationSettings.ShortCodeLength} characters long");
+
+        var existingShortUrl = _shortenedUrlRepository
+            .SearchForSingleOrDefault(x => x.ShortCode == shortCode);
+        
+        return existingShortUrl != null
+            ? new Uri(existingShortUrl.LongUrl)
+            : null;
     }
     
     private string CreateNewShortCode(string? longUrl)
@@ -81,7 +92,7 @@ public class ShortenedUrlService : IShortenedUrlService
         return newShortCode;
     }
 
-    private Uri GetAndLogReturnUrl(string? longUrl, string shortCode)
+    private Uri GetAndLogReturnShortenedUrl(string? longUrl, string shortCode)
     {
         var shortenedUrl = _shortCodeUrlPrefixer.GetPrefixedUrl(shortCode);
         _logger.LogInformation("Returning {shortenedUrl} for {longUrl}", shortenedUrl, longUrl);
