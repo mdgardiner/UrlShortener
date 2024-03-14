@@ -2,23 +2,27 @@ using System.Linq.Expressions;
 using FluentAssertions;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using UrlShortener.API.Entities;
 using UrlShortener.API.Repositories.Interfaces;
 using UrlShortener.API.Services;
 using UrlShortener.API.Services.Interfaces;
+using UrlShortener.API.Settings;
 
 namespace UrlShortener.API.Tests.Services;
 
 [TestFixture, Category("UnitTest")]
 public class ShortenedUrlService_CreateShortenedUrl_Tests
 {
-    private const string ShortCodePrefixUrl = "http://short.com"; 
+    private const string ShortCodePrefixUrl = "http://short.com";
+    private const int ShortCodeLength = 7;
     
     private Mock<IUrlValidator> _urlValidatorMock = default!;
     private Mock<IRepository<ShortenedUrl>> _shortenedUrlRepositoryMock = default!;
     private Mock<IShortCodeUrlPrefixer> _shortCodeUrlPrefixerMock = default!;
     private Mock<IShortCodeGenerator> _shortCodeGeneratorMock = default!;
+    private Mock<IOptions<ApplicationSettings>> _applicationSettingsMock = default!;
     private Mock<ILogger<ShortenedUrlService>> _loggerMock = default!;
     
     private ShortenedUrlService _sut = default!;
@@ -37,6 +41,13 @@ public class ShortenedUrlService_CreateShortenedUrl_Tests
             .Returns<string>(shortcode => new Uri(string.Join('/', ShortCodePrefixUrl, shortcode)));
 
         _shortCodeGeneratorMock = new Mock<IShortCodeGenerator>();
+
+        _applicationSettingsMock = new Mock<IOptions<ApplicationSettings>>();
+        _applicationSettingsMock.Setup(x => x.Value)
+            .Returns(new ApplicationSettings
+            {
+                ShortCodeLength = ShortCodeLength
+            });
         
         _loggerMock = new Mock<ILogger<ShortenedUrlService>>();
 
@@ -45,6 +56,7 @@ public class ShortenedUrlService_CreateShortenedUrl_Tests
             _shortenedUrlRepositoryMock.Object,
             _shortCodeUrlPrefixerMock.Object,
             _shortCodeGeneratorMock.Object,
+            _applicationSettingsMock.Object,
             _loggerMock.Object);
     }
 
@@ -112,7 +124,7 @@ public class ShortenedUrlService_CreateShortenedUrl_Tests
         var result = _sut.GetShortenedUrl(testLongUrl);
 
         // Assert
-        _shortCodeGeneratorMock.Verify(x => x.GenerateShortCode(7), Times.Once);
+        _shortCodeGeneratorMock.Verify(x => x.GenerateShortCode(ShortCodeLength), Times.Once);
         _shortCodeUrlPrefixerMock.Verify(x => x.GetPrefixedUrl(testShortCode), Times.Once);
         _shortenedUrlRepositoryMock.Verify(x => x.Insert(
             It.Is<ShortenedUrl>(y => 
@@ -122,5 +134,38 @@ public class ShortenedUrlService_CreateShortenedUrl_Tests
         _shortenedUrlRepositoryMock.Verify(x => x.Commit(), Times.Once);
         result.Should().Be($"{ShortCodePrefixUrl}/{testShortCode}");
     }
-    
+
+    [Test]
+    public void GivenAShortCodeIsGeneratedThatIsNotUnique_WhenCallingCreateShortenedURL_ThenShortCodeIsRegenerated()
+    {
+        // Arrange
+        var testLongUrl = "test.long.url";
+        var testExistingShortCode = "existing.short.code";
+        var testNewShortCode = "new.short.code";
+
+        _shortCodeGeneratorMock.SetupSequence(x => x.GenerateShortCode(It.IsAny<int>()))
+            .Returns(testExistingShortCode)
+            .Returns(testNewShortCode);
+        
+        _shortenedUrlRepositoryMock.SetupSequence(x =>
+                x.SearchForSingleOrDefault(
+                    It.IsAny<Expression<Func<ShortenedUrl, bool>>>()))
+            .Returns((ShortenedUrl)default!)
+            .Returns(new ShortenedUrl{ LongUrl = testLongUrl, ShortCode = testExistingShortCode })
+            .Returns((ShortenedUrl)default!);
+        
+        // Act
+        var result = _sut.GetShortenedUrl(testLongUrl);
+
+        // Assert
+        _shortCodeGeneratorMock.Verify(x => x.GenerateShortCode(ShortCodeLength), Times.Exactly(2));
+        _shortCodeUrlPrefixerMock.Verify(x => x.GetPrefixedUrl(testNewShortCode), Times.Once);
+        _shortenedUrlRepositoryMock.Verify(x => x.Insert(
+                It.Is<ShortenedUrl>(y => 
+                    y.LongUrl == testLongUrl && 
+                    y.ShortCode == testNewShortCode)),
+            Times.Once);
+        _shortenedUrlRepositoryMock.Verify(x => x.Commit(), Times.Once);
+        result.Should().Be($"{ShortCodePrefixUrl}/{testNewShortCode}");
+    }
 }
