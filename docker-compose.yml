@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   api:
@@ -16,6 +16,15 @@ services:
       - ApplicationSettings__ShortCodeUrlPrefix=http://localhost:3000
       - ApplicationSettings__ShortCodeLength=7
 
+  web:
+    build:
+      context: ./UrlShortener.Frontend/urlshortener-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      REACT_APP_SHORTENER_API_BASE_URL: "http://api:8080"
+
   database:
     image: postgres:latest
     ports:
@@ -24,4 +33,3 @@ services:
       POSTGRES_DB: shortenerdb
       POSTGRES_USER: dbusername
       POSTGRES_PASSWORD: dbpassword
-
