@@ -51,9 +51,11 @@ If you click the url or paste it into the url bar and go to it the browser shoul
 - The Postgres database is exposed locally on port 6000 so it can be viewed using a suitable client
 - The Backend API is exposed locally on port 8080 - swagger is available in `Development` mode at [http://localhost:8080/swagger](http://localhost:8080/swagger)
 - The React Frontend is exposed locally on port 3000 [http://localhost:3000](http://localhost:3000)
+- Obviously when deployed to production, this would be hosted on a domain with a short name - something like Microsoft's `aka.com`. The `ApplicationSettings__ShortCodeUrlPrefix` configuration allows the backend to return urls with the correct domain name. When running with this `docker-compose.yml`, this value is set to `http://localhost:3000` to match the url that the frontend runs on locally.
 
 ### Future improvements
 
 - The database needs tuning with indexes to improve performance
 - The retrieval of the shortened urls could be improved by introducing a caching layer with Redis or similar to improve performance
 - Needs work to use HTTPS rather than HTTP
+- Shortcodes for urls could be pre-generated so that the generation logic doesn't have to check against the database for uniqueness.
