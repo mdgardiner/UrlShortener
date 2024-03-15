@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { SHORTENER_API_BASE_URL } from "../AppConfig";
 
 function RedirectUrl() {
   const { shortCode } = useParams();
@@ -10,7 +11,7 @@ function RedirectUrl() {
       console.log(shortCode);
 
       const response = await axios.post(
-        process.env.REACT_APP_SHORTENER_API_BASE_URL + "/api/expand",
+        SHORTENER_API_BASE_URL + "/api/expand",
         { ShortCode: shortCode }
       );
 

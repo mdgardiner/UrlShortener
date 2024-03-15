@@ -23,7 +23,7 @@ services:
     ports:
       - "3000:80"
     environment:
-      REACT_APP_SHORTENER_API_BASE_URL: "http://api:8080"
+      REACT_APP_SHORTENER_API_BASE_URL: "http://localhost:8080"
 
   database:
     image: postgres:latest

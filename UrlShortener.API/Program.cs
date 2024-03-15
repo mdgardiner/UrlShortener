@@ -31,18 +31,18 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
             app.ApplyMigrations();
+            
+            app.UseCors(x =>
+                x
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .WithOrigins("http://localhost:3000"));
         }
 
         app.UseHttpsRedirection();
         app.UseAuthorization();
         app.MapControllers();
 
-        app.UseCors(x =>
-            x
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .WithOrigins("http://localhost:3000"));
-        
         app.Run();
     }
 }

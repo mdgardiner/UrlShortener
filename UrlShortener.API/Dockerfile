@@ -1,5 +1,6 @@
 ﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 WORKDIR /App
+EXPOSE 8080
 
 # Copy everything
 COPY . ./

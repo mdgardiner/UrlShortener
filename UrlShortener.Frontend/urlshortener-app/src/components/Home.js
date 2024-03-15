@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { SHORTENER_API_BASE_URL } from "../AppConfig";
 
 function Home() {
   const [originalUrl, setOriginalUrl] = useState("");
@@ -9,7 +10,7 @@ function Home() {
   const shortenUrl = async () => {
     try {
       const response = await axios.post(
-        process.env.REACT_APP_SHORTENER_API_BASE_URL + "/api/shorten",
+        SHORTENER_API_BASE_URL + "/api/shorten",
         { LongUrl: originalUrl }
       );
       setShortenedUrl(response.data);
